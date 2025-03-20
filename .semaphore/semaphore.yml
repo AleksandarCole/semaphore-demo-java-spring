@@ -16,6 +16,10 @@ auto_cancel:
   queued:
     when: branch = 'main'
 global_job_config:
+  prologue:
+    commands:
+      - apt-get update
+      - apt-get install -y openssh-client git
   env_vars:
     - name: MAVEN_OPTS
       value: '-Dmaven.repo.local=.m2'
