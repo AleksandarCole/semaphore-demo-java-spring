@@ -1,33 +1,40 @@
 version: v1.0
-name: Java Spring example CI pipeline on Semaphore
+name: ☕ Java Spring CI Pipeline
 agent:
   machine:
-    type: e1-standard-2
-    os_image: ubuntu2004
+    type: s1-kubernetes
+    os_image: ''
+  containers:
+    - name: main
+      image: 'maven:3.9.6-eclipse-temurin-17'
+fail_fast:
+  stop:
+    when: branch != 'main'
+auto_cancel:
+  running:
+    when: branch != 'main'
+  queued:
+    when: branch = 'main'
+global_job_config:
+  env_vars:
+    - name: MAVEN_OPTS
+      value: '-Dmaven.repo.local=.m2'
 blocks:
-  - name: Build
+  - name: "\U0001F3D7️ Build"
     task:
-      env_vars:
-        - name: MAVEN_OPTS
-          value: '-Dmaven.repo.local=.m2'
       jobs:
         - name: Build
           commands:
-            - sem-version java 17
             - checkout
-            - cache restore
+            - cache restore m2
             - 'mvn -q package jmeter:configure -Dmaven.test.skip=true'
-            - cache store
-  - name: Test
+            - cache store m2 ~/.m2
+  - name: "\U0001F9EA Test"
     task:
-      env_vars:
-        - name: MAVEN_OPTS
-          value: '-Dmaven.repo.local=.m2'
       prologue:
         commands:
-          - sem-version java 17
           - checkout
-          - cache restore
+          - cache restore m2
           - mvn -q test-compile -Dmaven.test.skip=true
       jobs:
         - name: Unit tests
@@ -36,16 +43,13 @@ blocks:
         - name: Integration tests
           commands:
             - mvn test -Pintegration-testing
-  - name: Performance tests
+  - name: ⚡ Performance tests
     task:
-      env_vars:
-        - name: MAVEN_OPTS
-          value: '-Dmaven.repo.local=.m2'
       prologue:
         commands:
-          - sem-version java 17
           - checkout
-          - cache restore
+          - cache restore m2
+          - 'mvn -q package jmeter:configure -Dmaven.test.skip=true'
       jobs:
         - name: Benchmark
           commands:
@@ -54,8 +58,3 @@ blocks:
             - sleep 20
             - 'mvn -q jmeter:jmeter'
             - 'mvn jmeter:results'
-promotions:
-  - name: "Dockerize \U0001F433"
-    pipeline_file: docker-build.yml
-    auto_promote_on:
-      - result: passed
